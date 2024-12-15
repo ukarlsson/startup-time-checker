@@ -1,0 +1,15 @@
+[Unit]
+Description=Check startup time
+DefaultDependencies=no
+Before=basic.target
+
+[Service]
+ExecStart=/usr/bin/startup-time-check
+Type=oneshot
+StandardOutput=journal+console
+StandardError=journal+console
+RemainAfterExit=no
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=basic.target

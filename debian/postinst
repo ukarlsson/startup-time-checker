@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+chown root:root /usr/bin/startup-time
+chmod 4755 /usr/bin/startup-time
+
+systemctl enable startup-time-checker.service

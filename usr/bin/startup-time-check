@@ -1,0 +1,23 @@
+#!/bin/bash
+STARTUP_FILE="/home/ulf/startup-time"
+
+while true; do
+    CURRENT_TIME=$(date --utc +%Y-%m-%dT%H:%M:%SZ)
+
+    if [ -f "$STARTUP_FILE" ]; then
+        STARTUP_TIME=$(cat "$STARTUP_FILE")
+
+        if [[ "$STARTUP_TIME" > "$CURRENT_TIME" ]]; then
+            echo "Startup time in future ($STARTUP_TIME). Current time: $CURRENT_TIME."
+        else
+            echo "Startup time: $STARTUP_TIME. Current time: $CURRENT_TIME. Proceeding."
+            break
+        fi
+    else
+        echo "No startup-time file. Current time: $CURRENT_TIME."
+	break
+    fi
+
+    sleep 10
+done
+

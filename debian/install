@@ -1,0 +1,3 @@
+usr/bin/startup-time-check usr/bin/
+usr/bin/startup-time usr/bin/
+etc/systemd/system/startup-time-checker.service etc/systemd/system/

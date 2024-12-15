@@ -1,0 +1,13 @@
+# Build artifacts
+*.deb
+*.build
+*.changes
+*.dsc
+*.log
+
+# debhelper generated files
+debian/debhelper-build-stamp
+debian/*.substvars
+debian/.debhelper/
+debian/startup-time-checker/
+debian/files
