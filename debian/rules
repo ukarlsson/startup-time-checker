@@ -1,4 +1,19 @@
 #!/usr/bin/make -f
 
+export DH_GOLANG_INSTALL_ALL = 1
+export GO111MODULE = auto
+
 %:
 	dh $@
+
+override_dh_auto_build:
+
+override_dh_auto_install:
+	go build -o debian/tmp/usr/bin/startup-time ./cmd/startup-time/
+	dh_install
+
+override_dh_fixperms:
+	chown root:root debian/tmp/usr/bin/startup-time
+	chmod 4755 debian/tmp/usr/bin/startup-time
+
+override_dh_dwz:

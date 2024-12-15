@@ -11,3 +11,4 @@ debian/*.substvars
 debian/.debhelper/
 debian/startup-time-checker/
 debian/files
+debian/tmp

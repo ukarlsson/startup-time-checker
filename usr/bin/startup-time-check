@@ -1,8 +1,8 @@
 #!/bin/bash
-STARTUP_FILE="/home/ulf/startup-time"
+STARTUP_FILE="/var/lib/startup-time.state"
 
 while true; do
-    CURRENT_TIME=$(date --utc +%Y-%m-%dT%H:%M:%SZ)
+    CURRENT_TIME=$(date --iso-8601=seconds)
 
     if [ -f "$STARTUP_FILE" ]; then
         STARTUP_TIME=$(cat "$STARTUP_FILE")

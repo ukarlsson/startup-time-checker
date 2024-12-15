@@ -2,10 +2,10 @@ Source: startup-time-checker
 Section: utils
 Priority: optional
 Maintainer: Ulf Karlsson <karlsson.ulf@gmail.com>
+Build-Depends: golang-go, debhelper-compat (= 13)
 Standards-Version: 4.6.0
-Build-Depends: debhelper-compat (= 13)
 
 Package: startup-time-checker
 Architecture: amd64
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Run verification of startup time in early boot systemd service
+Description: A Golang-based tool and support to run verification of startup time in early boot systemd service
