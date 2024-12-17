@@ -5,3 +5,7 @@ chown root:root /usr/bin/startup-time
 chmod 4755 /usr/bin/startup-time
 
 systemctl enable startup-time-checker.service
+
+echo "To configure your system, run the following commands:"
+echo "  sudo timedatectl set-local-rtc 0"
+echo "  sudo hwclock --systohc --utc"
