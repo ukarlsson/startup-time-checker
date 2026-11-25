@@ -1,3 +1,11 @@
+startup-time-checker (1.2) unstable; urgency=medium
+
+  * Show the countdown as a message on the boot splash (plymouth) while the
+    boot is locked, so it is visible without pressing Esc.
+  * Order the unit after plymouth-start.service.
+
+ -- Ulf Karlsson <karlsson.ulf@gmail.com>  Wed, 25 Nov 2026 20:30:00 +0100
+
 startup-time-checker (1.1) unstable; urgency=medium
 
   * Security: call /usr/bin/date by absolute path with a clean environment

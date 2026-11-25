@@ -16,7 +16,7 @@ startup-time clear                  # remove it
 you are happy with it, shut down: the machine stays locked until then.
 
 On boot, `startup-time-checker.service` runs before `sysinit.target` and waits
-(printing the time left on the console) until the lock has passed. A missing
+(showing the time left under the boot splash logo, and on the console) until the lock has passed. A missing
 or corrupt state file never blocks booting.
 
 ### Making it hard to cheat

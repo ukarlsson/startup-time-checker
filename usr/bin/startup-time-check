@@ -5,9 +5,15 @@
 # Times are compared as Unix seconds, not as strings, so a lock written in
 # summer time (+02:00) still works in winter (+01:00) and vice versa.
 # A missing or unreadable state file never blocks booting.
+#
+# While waiting, the countdown is printed to the console and, if the boot
+# splash (plymouth) is running, also shown as a message under the splash logo.
+
+export LC_ALL=C
 
 STATE_FILE="${STARTUP_TIME_STATE:-/var/lib/startup-time.state}"
 INTERVAL="${STARTUP_TIME_INTERVAL:-10}"
+PLYMOUTH="${STARTUP_TIME_PLYMOUTH:-plymouth}"
 
 [ -f "$STATE_FILE" ] || { echo "startup-time: no lock set, booting."; exit 0; }
 
@@ -17,13 +23,44 @@ if ! LOCK_S=$(date --date="$LOCK" +%s 2>/dev/null); then
     exit 0
 fi
 
+# Human-friendly lock time: "07:00" today, otherwise "Thu 26 Nov 07:00".
+if [ "$(date --date="@$LOCK_S" +%F)" = "$(date +%F)" ]; then
+    LOCK_HUMAN=$(date --date="@$LOCK_S" +%H:%M)
+else
+    LOCK_HUMAN=$(date --date="@$LOCK_S" '+%a %-d %b %H:%M')
+fi
+
+SPLASH_MSG=""
+splash_show() {
+    command -v "$PLYMOUTH" >/dev/null 2>&1 && "$PLYMOUTH" --ping 2>/dev/null || return 0
+    [ -n "$SPLASH_MSG" ] && "$PLYMOUTH" hide-message --text="$SPLASH_MSG" 2>/dev/null
+    SPLASH_MSG="$1"
+    "$PLYMOUTH" display-message --text="$SPLASH_MSG" 2>/dev/null
+    return 0
+}
+splash_clear() {
+    [ -n "$SPLASH_MSG" ] || return 0
+    command -v "$PLYMOUTH" >/dev/null 2>&1 && "$PLYMOUTH" --ping 2>/dev/null || return 0
+    "$PLYMOUTH" hide-message --text="$SPLASH_MSG" 2>/dev/null
+    SPLASH_MSG=""
+    return 0
+}
+trap 'splash_clear' EXIT
+trap 'exit 143' TERM INT
+
 while :; do
     NOW_S=$(date +%s)
     if [ "$NOW_S" -ge "$LOCK_S" ]; then
         echo "startup-time: lock expired ($LOCK), booting."
         exit 0
     fi
-    LEFT=$(( (LOCK_S - NOW_S + 59) / 60 ))
-    echo "startup-time: boot locked until $LOCK ($LEFT min left)."
+    LEFT_MIN=$(( (LOCK_S - NOW_S + 59) / 60 ))
+    if [ "$LEFT_MIN" -ge 60 ]; then
+        LEFT="$((LEFT_MIN / 60)) h $((LEFT_MIN % 60)) min"
+    else
+        LEFT="$LEFT_MIN min"
+    fi
+    echo "startup-time: boot locked until $LOCK ($LEFT left)."
+    splash_show "Boot locked until $LOCK_HUMAN ($LEFT left)"
     sleep "$INTERVAL"
 done

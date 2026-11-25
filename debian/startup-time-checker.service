@@ -4,7 +4,7 @@ Documentation=https://github.com/ukarlsson/startup-time-checker
 DefaultDependencies=no
 # /var/lib must be mounted and the clock set before we can judge the lock.
 Requires=local-fs.target
-After=local-fs.target time-set.target
+After=local-fs.target time-set.target plymouth-start.service
 Before=sysinit.target basic.target
 ConditionPathExists=/var/lib/startup-time.state
 

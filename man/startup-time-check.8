@@ -1,4 +1,4 @@
-.TH STARTUP-TIME-CHECK 8 "November 2026" "startup-time-checker 1.1" "System Administration"
+.TH STARTUP-TIME-CHECK 8 "November 2026" "startup-time-checker 1.2" "System Administration"
 .SH NAME
 startup-time-check \- wait during boot until the startup-time lock has passed
 .SH SYNOPSIS
@@ -11,7 +11,9 @@ before
 Reads the lock time written by
 .BR startup-time (1)
 and waits, printing the time left on the console every 10 seconds, until it has
-passed. A missing or unparsable state file never blocks booting.
+passed. If the boot splash
+.BR plymouth (1)
+is running, the countdown is also shown as a message under the splash logo. A missing or unparsable state file never blocks booting.
 .SH ESCAPE
 Boot with
 .B systemd.mask=startup-time-checker.service
