@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: startup-time-checker
+Source: https://github.com/ukarlsson/startup-time-checker
+
+Files: *
+Copyright: 2024-2026 Ulf Karlsson <karlsson.ulf@gmail.com>
+License: other
+ No license has been chosen yet; all rights reserved by the copyright holder.

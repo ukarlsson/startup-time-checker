@@ -1,0 +1,20 @@
+[Unit]
+Description=Hold boot until the startup-time lock has expired
+Documentation=https://github.com/ukarlsson/startup-time-checker
+DefaultDependencies=no
+# /var/lib must be mounted and the clock set before we can judge the lock.
+Requires=local-fs.target
+After=local-fs.target time-set.target
+Before=sysinit.target basic.target
+ConditionPathExists=/var/lib/startup-time.state
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/startup-time-check
+RemainAfterExit=yes
+TimeoutStartSec=infinity
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=sysinit.target

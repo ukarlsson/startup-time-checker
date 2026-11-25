@@ -1,0 +1,33 @@
+.TH STARTUP-TIME 1 "November 2026" "startup-time-checker 1.1" "User Commands"
+.SH NAME
+startup-time \- lock booting until a chosen time
+.SH SYNOPSIS
+.B startup-time set
+.I time
+.br
+.B startup-time get
+.br
+.B startup-time clear
+.SH DESCRIPTION
+Stores a time before which the machine refuses to finish booting. The check is
+done early in boot by
+.BR startup-time-check (8)
+through
+.IR startup-time-checker.service .
+.PP
+.I time
+is anything
+.BR date (1)
+accepts with
+.BR \-\-date ,
+for example "tomorrow 07:00" or "now + 8 hours".
+.PP
+The program is setuid root. A non-root user may set a lock or move an active
+lock later, but never earlier;
+.B clear
+requires root.
+.SH FILES
+.I /var/lib/startup-time.state
+.SH SEE ALSO
+.BR startup-time-check (8),
+.BR date (1)

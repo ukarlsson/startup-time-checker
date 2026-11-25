@@ -12,3 +12,10 @@ debian/.debhelper/
 debian/startup-time-checker/
 debian/files
 debian/tmp
+
+# Go build output
+debian/build/
+debian/.gocache/
+debian/.gopath/
+/startup-time
+debian/*.debhelper

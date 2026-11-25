@@ -1,6 +1,21 @@
+startup-time-checker (1.1) unstable; urgency=medium
+
+  * Security: call /usr/bin/date by absolute path with a clean environment
+    from the setuid binary (PATH hijack gave root).
+  * Non-root users may only extend an active lock; add root-only "clear".
+  * Compare lock times as Unix seconds so DST/offset changes cannot break
+    the check; never block boot on a missing or corrupt state file.
+  * Write the state file atomically.
+  * Add go.mod targeting Go 1.27; offline module-mode build.
+  * Packaging: debhelper-compat 14, Rules-Requires-Root: no, systemd unit in
+    /usr/lib via dh_installsystemd (ordered after local-fs and time-set),
+    setuid bit via dh_fixperms, copyright, source format, lintian overrides,
+    purge removes the state file, build-time tests.
+
+ -- Ulf Karlsson <karlsson.ulf@gmail.com>  Wed, 25 Nov 2026 20:00:00 +0100
+
 startup-time-checker (1.0) unstable; urgency=low
 
   * Initial release.
 
  -- Ulf Karlsson <karlsson.ulf@gmail.com>  Sun, 15 Dec 2024 12:00:00 +0000
-

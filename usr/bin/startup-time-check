@@ -1,23 +1,29 @@
-#!/bin/bash
-STARTUP_FILE="/var/lib/startup-time.state"
+#!/bin/sh
+# Runs early in boot (startup-time-checker.service) and blocks until the lock
+# time stored by `startup-time set` has passed.
+#
+# Times are compared as Unix seconds, not as strings, so a lock written in
+# summer time (+02:00) still works in winter (+01:00) and vice versa.
+# A missing or unreadable state file never blocks booting.
 
-while true; do
-    CURRENT_TIME=$(date --iso-8601=seconds)
+STATE_FILE="${STARTUP_TIME_STATE:-/var/lib/startup-time.state}"
+INTERVAL="${STARTUP_TIME_INTERVAL:-10}"
 
-    if [ -f "$STARTUP_FILE" ]; then
-        STARTUP_TIME=$(cat "$STARTUP_FILE")
+[ -f "$STATE_FILE" ] || { echo "startup-time: no lock set, booting."; exit 0; }
 
-        if [[ "$STARTUP_TIME" > "$CURRENT_TIME" ]]; then
-            echo "Startup time in future ($STARTUP_TIME). Current time: $CURRENT_TIME."
-        else
-            echo "Startup time: $STARTUP_TIME. Current time: $CURRENT_TIME. Proceeding."
-            break
-        fi
-    else
-        echo "No startup-time file. Current time: $CURRENT_TIME."
-	break
+LOCK=$(head -n 1 "$STATE_FILE")
+if ! LOCK_S=$(date --date="$LOCK" +%s 2>/dev/null); then
+    echo "startup-time: cannot parse lock time '$LOCK' in $STATE_FILE, booting anyway." >&2
+    exit 0
+fi
+
+while :; do
+    NOW_S=$(date +%s)
+    if [ "$NOW_S" -ge "$LOCK_S" ]; then
+        echo "startup-time: lock expired ($LOCK), booting."
+        exit 0
     fi
-
-    sleep 10
+    LEFT=$(( (LOCK_S - NOW_S + 59) / 60 ))
+    echo "startup-time: boot locked until $LOCK ($LEFT min left). Go to sleep."
+    sleep "$INTERVAL"
 done
-

@@ -2,10 +2,20 @@ Source: startup-time-checker
 Section: utils
 Priority: optional
 Maintainer: Ulf Karlsson <karlsson.ulf@gmail.com>
-Build-Depends: golang-go, debhelper-compat (= 13)
-Standards-Version: 4.6.0
+Build-Depends: debhelper-compat (= 14), golang-go (>= 2:1.27~)
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Homepage: https://github.com/ukarlsson/startup-time-checker
+Vcs-Git: https://github.com/ukarlsson/startup-time-checker.git
+Vcs-Browser: https://github.com/ukarlsson/startup-time-checker
 
 Package: startup-time-checker
-Architecture: amd64
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: A Golang-based tool and support to run verification of startup time in early boot systemd service
+Architecture: any
+Depends: ${misc:Depends}
+Description: hold boot until a chosen time (self-imposed lockout)
+ A small systemd service that runs early in boot and refuses to let the
+ machine finish starting until a time set with "startup-time set" has passed,
+ for example "tomorrow 07:00".
+ .
+ The startup-time command is setuid root so an ordinary user can set a lock.
+ Non-root users can only extend an active lock, never shorten or clear it.

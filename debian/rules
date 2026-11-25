@@ -1,19 +1,38 @@
 #!/usr/bin/make -f
 
-export DH_GOLANG_INSTALL_ALL = 1
-export GO111MODULE = auto
+export DH_VERBOSE = 1
+# Reproducible, network-free Go build with a throwaway cache.
+export GOFLAGS = -trimpath -buildvcs=false -mod=readonly
+export GOCACHE = $(CURDIR)/debian/.gocache
+export GOPATH = $(CURDIR)/debian/.gopath
+export GOTOOLCHAIN = local
+export GOPROXY = off
+export CGO_ENABLED = 0
 
 %:
-	dh $@
+	dh $@ --without=single-binary
 
 override_dh_auto_build:
+	go build -ldflags=-s -o debian/build/startup-time ./cmd/startup-time
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	go vet ./...
+	go test ./...
+	sh -n usr/bin/startup-time-check
+endif
 
 override_dh_auto_install:
-	go build -o debian/tmp/usr/bin/startup-time ./cmd/startup-time/
-	dh_install
+	install -D -m 0755 debian/build/startup-time debian/startup-time-checker/usr/bin/startup-time
+	install -D -m 0755 usr/bin/startup-time-check debian/startup-time-checker/usr/bin/startup-time-check
+
+override_dh_auto_clean:
+	rm -rf debian/build debian/.gocache debian/.gopath
 
 override_dh_fixperms:
-	chown root:root debian/tmp/usr/bin/startup-time
-	chmod 4755 debian/tmp/usr/bin/startup-time
+	dh_fixperms
+	chmod 4755 debian/startup-time-checker/usr/bin/startup-time
 
-override_dh_dwz:
+# The lock must survive upgrades; never restart (and thus block) on upgrade.
+override_dh_installsystemd:
+	dh_installsystemd --no-restart-on-upgrade --no-start

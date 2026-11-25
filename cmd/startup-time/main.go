@@ -1,71 +1,185 @@
+// Command startup-time sets or shows the time before which the machine
+// refuses to finish booting (see startup-time-check and its systemd unit).
+//
+// It is installed setuid root so that an unprivileged user can lock the
+// machine. Because of that it trusts nothing from the caller's environment:
+// the time is parsed by /usr/bin/date (absolute path, minimal environment),
+// and a non-root caller may only move an active lock later, never earlier.
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
-const stateFile = "/var/lib/startup-time.state"
+// Overridable at build time (-ldflags "-X main.stateFile=...") for tests;
+// deliberately not configurable at run time because the binary is setuid.
+var (
+	stateFile = "/var/lib/startup-time.state"
+	dateCmd   = "/usr/bin/date"
+)
+
+func usage() {
+	fmt.Fprintln(os.Stderr, `Usage:
+  startup-time set <time>   lock booting until <time> (any format date(1) accepts,
+                            e.g. "tomorrow 07:00" or "2026-12-24 18:00")
+  startup-time get          show the current lock
+  startup-time clear        remove the lock (root only)`)
+}
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: startup-time <set|get> [time]")
-		os.Exit(1)
+		usage()
+		os.Exit(2)
 	}
 
+	var err error
 	switch os.Args[1] {
 	case "set":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: startup-time set <time>")
-			os.Exit(1)
+			usage()
+			os.Exit(2)
 		}
-		inputTime := strings.Join(os.Args[2:], " ")
-		parsedTime, err := parseTime(inputTime)
-		if err != nil {
-			fmt.Println("Error parsing time:", err)
-			os.Exit(1)
-		}
-		writeTime(parsedTime)
+		err = set(strings.Join(os.Args[2:], " "))
 	case "get":
-		readTime()
+		err = get()
+	case "clear":
+		err = clear()
+	case "-h", "--help", "help":
+		usage()
 	default:
-		fmt.Println("Unknown command:", os.Args[1])
+		fmt.Fprintln(os.Stderr, "Unknown command:", os.Args[1])
+		usage()
+		os.Exit(2)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 }
 
-func parseTime(input string) (string, error) {
-	cmd := exec.Command("date", "--date="+input, "--iso-8601=seconds")
-	output, err := cmd.Output()
+// parseTime lets date(1) interpret the free-form input. The child gets an
+// empty environment apart from a fixed locale, so PATH, TZ and similar
+// variables from an unprivileged caller cannot influence a root process.
+func parseTime(input string) (time.Time, error) {
+	cmd := exec.Command(dateCmd, "--date="+input, "+%s")
+	cmd.Env = []string{"LC_ALL=C"}
+	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to parse time using date: %v", err)
+		var ee *exec.ExitError
+		if errors.As(err, &ee) && len(ee.Stderr) > 0 {
+			return time.Time{}, fmt.Errorf("cannot parse %q: %s", input, strings.TrimSpace(string(ee.Stderr)))
+		}
+		return time.Time{}, fmt.Errorf("cannot parse %q: %v", input, err)
 	}
-	return strings.TrimSpace(string(output)), nil
+	var secs int64
+	if _, err := fmt.Sscan(strings.TrimSpace(string(out)), &secs); err != nil {
+		return time.Time{}, fmt.Errorf("unexpected output from date: %q", out)
+	}
+	return time.Unix(secs, 0), nil
 }
 
-func writeTime(newTime string) {
-	file, err := os.OpenFile(stateFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-	defer file.Close()
-
-	_, err = file.WriteString(newTime)
-	if err != nil {
-		fmt.Println("Failed to write time:", err)
-		os.Exit(1)
-	}
-	fmt.Println("Set startup time to", newTime)
-}
-
-func readTime() {
+// readLock returns the stored lock time, or the zero time if there is none.
+func readLock() (time.Time, error) {
 	data, err := os.ReadFile(stateFile)
-	if err != nil {
-		fmt.Println("Failed to read state file:", err)
-		os.Exit(1)
+	if errors.Is(err, fs.ErrNotExist) {
+		return time.Time{}, nil
 	}
-	fmt.Println("Startup time is", string(data))
+	if err != nil {
+		return time.Time{}, err
+	}
+	t, err := time.Parse(time.RFC3339, strings.TrimSpace(string(data)))
+	if err != nil {
+		return time.Time{}, fmt.Errorf("corrupt state file %s: %v", stateFile, err)
+	}
+	return t, nil
+}
+
+func isRoot() bool { return os.Getuid() == 0 }
+
+func set(input string) error {
+	t, err := parseTime(input)
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	if !t.After(now) {
+		return fmt.Errorf("%s is not in the future", t.Local().Format(time.RFC3339))
+	}
+	if !isRoot() {
+		cur, err := readLock()
+		if err != nil {
+			return err
+		}
+		if cur.After(now) && t.Before(cur) {
+			return fmt.Errorf("a lock until %s is active; only root can shorten it",
+				cur.Local().Format(time.RFC3339))
+		}
+	}
+	if err := writeAtomic(t.Local().Format(time.RFC3339) + "\n"); err != nil {
+		return err
+	}
+	fmt.Println("Boot locked until", t.Local().Format(time.RFC3339))
+	return nil
+}
+
+func get() error {
+	t, err := readLock()
+	if err != nil {
+		return err
+	}
+	switch {
+	case t.IsZero():
+		fmt.Println("No lock set.")
+	case t.After(time.Now()):
+		fmt.Printf("Boot locked until %s (%s from now).\n",
+			t.Local().Format(time.RFC3339), time.Until(t).Round(time.Second))
+	default:
+		fmt.Printf("Lock expired at %s.\n", t.Local().Format(time.RFC3339))
+	}
+	return nil
+}
+
+func clear() error {
+	if !isRoot() {
+		return errors.New("only root can clear the lock")
+	}
+	if err := os.Remove(stateFile); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	fmt.Println("Lock cleared.")
+	return nil
+}
+
+// writeAtomic replaces the state file via a temp file and rename, so a crash
+// or power loss never leaves a half-written lock behind.
+func writeAtomic(content string) error {
+	dir := filepath.Dir(stateFile)
+	tmp, err := os.CreateTemp(dir, ".startup-time.*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.WriteString(content); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(0o644); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), stateFile)
 }
