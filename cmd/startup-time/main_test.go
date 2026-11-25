@@ -43,10 +43,10 @@ func TestParseTimeIgnoresCallerPath(t *testing.T) {
 	}
 }
 
-func TestSetRejectsPast(t *testing.T) {
+func TestSetAcceptsPast(t *testing.T) {
 	withState(t)
-	if err := set("2001-01-01"); err == nil {
-		t.Fatal("expected error for a past time")
+	if err := set("2001-01-01 00:00 UTC"); err != nil {
+		t.Fatalf("past time should be accepted (means no lock): %v", err)
 	}
 }
 
@@ -65,22 +65,19 @@ func TestSetWritesRFC3339AndReadsBack(t *testing.T) {
 	}
 }
 
-func TestNonRootCannotShorten(t *testing.T) {
-	if isRoot() {
-		t.Skip("running as root")
-	}
-	withState(t)
+func TestUserCanShortenAndClear(t *testing.T) {
+	p := withState(t)
 	if err := set("now + 3 hours"); err != nil {
 		t.Fatal(err)
 	}
-	if err := set("now + 1 hour"); err == nil {
-		t.Fatal("non-root shortened an active lock")
+	if err := set("now + 1 hour"); err != nil {
+		t.Fatalf("shortening should work: %v", err)
 	}
-	if err := set("now + 5 hours"); err != nil {
-		t.Fatalf("extending should work: %v", err)
+	if err := clear(); err != nil {
+		t.Fatalf("clear should work: %v", err)
 	}
-	if err := clear(); err == nil {
-		t.Fatal("non-root cleared the lock")
+	if _, err := os.Stat(p); !os.IsNotExist(err) {
+		t.Fatal("state file still exists after clear")
 	}
 }
 

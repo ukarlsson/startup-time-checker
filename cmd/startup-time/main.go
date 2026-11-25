@@ -3,8 +3,7 @@
 //
 // It is installed setuid root so that an unprivileged user can lock the
 // machine. Because of that it trusts nothing from the caller's environment:
-// the time is parsed by /usr/bin/date (absolute path, minimal environment),
-// and a non-root caller may only move an active lock later, never earlier.
+// the time is parsed by /usr/bin/date (absolute path, minimal environment).
 package main
 
 import (
@@ -30,7 +29,7 @@ func usage() {
   startup-time set <time>   lock booting until <time> (any format date(1) accepts,
                             e.g. "tomorrow 07:00" or "2026-12-24 18:00")
   startup-time get          show the current lock
-  startup-time clear        remove the lock (root only)`)
+  startup-time clear        remove the lock`)
 }
 
 func main() {
@@ -101,31 +100,18 @@ func readLock() (time.Time, error) {
 	return t, nil
 }
 
-func isRoot() bool { return os.Getuid() == 0 }
-
 func set(input string) error {
 	t, err := parseTime(input)
 	if err != nil {
 		return err
 	}
-	now := time.Now()
-	if !t.After(now) {
-		return fmt.Errorf("%s is not in the future", t.Local().Format(time.RFC3339))
-	}
-	if !isRoot() {
-		cur, err := readLock()
-		if err != nil {
-			return err
-		}
-		if cur.After(now) && t.Before(cur) {
-			return fmt.Errorf("a lock until %s is active; only root can shorten it",
-				cur.Local().Format(time.RFC3339))
-		}
-	}
 	if err := writeAtomic(t.Local().Format(time.RFC3339) + "\n"); err != nil {
 		return err
 	}
-	fmt.Println("Boot locked until", t.Local().Format(time.RFC3339))
+	fmt.Println("Set startup time to", t.Local().Format(time.RFC3339))
+	if !t.After(time.Now()) {
+		fmt.Println("Note: that time has already passed, so the next boot is not locked.")
+	}
 	return nil
 }
 
@@ -147,9 +133,6 @@ func get() error {
 }
 
 func clear() error {
-	if !isRoot() {
-		return errors.New("only root can clear the lock")
-	}
 	if err := os.Remove(stateFile); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}

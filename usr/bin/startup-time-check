@@ -24,6 +24,6 @@ while :; do
         exit 0
     fi
     LEFT=$(( (LOCK_S - NOW_S + 59) / 60 ))
-    echo "startup-time: boot locked until $LOCK ($LEFT min left). Go to sleep."
+    echo "startup-time: boot locked until $LOCK ($LEFT min left)."
     sleep "$INTERVAL"
 done

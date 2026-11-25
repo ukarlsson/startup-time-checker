@@ -9,11 +9,11 @@ stays unusable until morning.
 ```sh
 startup-time set "tomorrow 07:00"   # any format date(1) understands
 startup-time get                    # show the current lock
-sudo startup-time clear             # remove it (root only)
+startup-time clear                  # remove it
 ```
 
-`startup-time` is setuid root, so no sudo is needed to set a lock. A normal
-user can only **extend** an active lock, never shorten or clear it.
+`startup-time` is setuid root, so no sudo is needed. Set the time, and once
+you are happy with it, shut down: the machine stays locked until then.
 
 On boot, `startup-time-checker.service` runs before `sysinit.target` and waits
 (printing the time left on the console) until the lock has passed. A missing
@@ -34,7 +34,7 @@ Setting a BIOS/UEFI password closes that gap too.
 ### Emergency escape
 
 At the GRUB menu press `e`, add `systemd.mask=startup-time-checker.service`
-to the `linux` line and boot with Ctrl+X. Then `sudo startup-time clear`.
+to the `linux` line and boot with Ctrl+X. Then `startup-time clear`.
 
 ## Install
 

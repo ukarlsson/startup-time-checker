@@ -22,10 +22,8 @@ accepts with
 .BR \-\-date ,
 for example "tomorrow 07:00" or "now + 8 hours".
 .PP
-The program is setuid root. A non-root user may set a lock or move an active
-lock later, but never earlier;
-.B clear
-requires root.
+The program is setuid root, so an ordinary user can set, change or clear the
+lock. A time in the past means no lock.
 .SH FILES
 .I /var/lib/startup-time.state
 .SH SEE ALSO

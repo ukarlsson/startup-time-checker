@@ -2,7 +2,7 @@ startup-time-checker (1.1) unstable; urgency=medium
 
   * Security: call /usr/bin/date by absolute path with a clean environment
     from the setuid binary (PATH hijack gave root).
-  * Non-root users may only extend an active lock; add root-only "clear".
+  * Add "clear" to remove the lock.
   * Compare lock times as Unix seconds so DST/offset changes cannot break
     the check; never block boot on a missing or corrupt state file.
   * Write the state file atomically.

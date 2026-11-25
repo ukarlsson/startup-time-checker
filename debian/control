@@ -17,5 +17,5 @@ Description: hold boot until a chosen time (self-imposed lockout)
  machine finish starting until a time set with "startup-time set" has passed,
  for example "tomorrow 07:00".
  .
- The startup-time command is setuid root so an ordinary user can set a lock.
- Non-root users can only extend an active lock, never shorten or clear it.
+ The startup-time command is setuid root so an ordinary user can set, change
+ or clear the lock without sudo.

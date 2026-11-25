@@ -1,4 +1,4 @@
 # Go binaries are statically linked by design (CGO_ENABLED=0).
 startup-time-checker: statically-linked-binary [usr/bin/startup-time]
-# Setuid is the point: lets a normal user set a lock (they can only extend it).
+# Setuid is the point: lets a normal user set a lock without sudo.
 startup-time-checker: elevated-privileges 4755 root/root [usr/bin/startup-time]
