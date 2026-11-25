@@ -22,7 +22,7 @@ jobs:
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             ca-certificates git build-essential debhelper golang-go lintian
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Build package
         run: |
@@ -38,7 +38,7 @@ jobs:
           dpkg-deb --info dist/*.deb
           dpkg-deb --contents dist/*.deb
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: startup-time-checker-deb
           path: dist/*.deb
